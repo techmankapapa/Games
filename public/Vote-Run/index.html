@@ -6,7 +6,7 @@
 <title>Vote Runner — Meme Arcade</title>
 <link rel="stylesheet" href="/assets/style.css" />
 <!-- Opens the connection to the game's host early (DNS + TLS) so the
-     iframe's own assets — including its background image — start
+     iframe's own assets — including its background image — startThis game runs in an embedded frame we don't control, so it can't hand us your score automatically unless the game itself sends it. Type in the number shown on screen and save it here — it stays on this device under your guest tag (or your account, if you're signed in).
      downloading sooner once the src is set. This is a real speed-up,
      not cosmetic, but it can't make the remote server itself faster. -->
 <link rel="preconnect" href="https://techmankapapa.github.io" crossorigin />
@@ -33,25 +33,6 @@
         <iframe src="https://techmankapapa.github.io/Vote-Run/" title="Vote Runner" allow="autoplay; fullscreen" allowfullscreen></iframe>
       </div>
     </div>
-
-    <aside class="side-panel">
-      <div class="panel-block">
-        <h3>Log your score</h3>
-        <form class="score-form" id="scoreForm">
-          <input type="number" inputmode="numeric" id="scoreInput" placeholder="Score shown in-game" required />
-          <button type="submit">Save</button>
-        </form>
-        <p class="hint">This game runs in an embedded frame we don't control, so it can't hand us your score automatically unless the game itself sends it. Type in the number shown on screen and save it here — it stays on this device under your guest tag (or your account, if you're signed in).</p>
-      </div>
-
-      <div class="panel-block">
-        <h3>Your best runs</h3>
-        <ul class="score-list" id="scoreList"></ul>
-      </div>
-    </aside>
-  </div>
-
-  <div class="toast" id="toast">Saved!</div>
 
   <footer class="site-footer">Guest scores are stored locally in this browser only.</footer>
 
