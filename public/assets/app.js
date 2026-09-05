@@ -1,12 +1,10 @@
 /* ---------------------------------------------------------
    Meme Arcade — auth (Google / email+password / guest) via
-   Firebase, plus guest identity & score storage (local +
-   cloud via Firestore, synced to the signed-in account).
+   Firebase, plus guest identity.
 
    Requires, loaded BEFORE this file:
      firebase-app-compat.js
      firebase-auth-compat.js
-     firebase-firestore-compat.js
      assets/firebase-config.js   (your project keys)
 --------------------------------------------------------- */
 
