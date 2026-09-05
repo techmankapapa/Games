@@ -67,8 +67,34 @@ a{ color:inherit; text-decoration:none; }
   align-items:center;
   justify-content:space-between;
   gap:16px;
-  padding:20px clamp(20px,5vw,56px);
+  padding:20px clamp(20px,5vw,56px) 14px;
+}
+
+.site-nav{
+  display:flex;
+  gap:6px;
+  overflow-x:auto;
+  padding:0 clamp(20px,5vw,56px) 16px;
   border-bottom:1px solid var(--panel-2);
+  scrollbar-width:thin;
+}
+
+.site-nav .nav-link{
+  flex:none;
+  font-size:13px;
+  color:var(--dust);
+  padding:8px 14px;
+  border-radius:999px;
+  border:1px solid transparent;
+  white-space:nowrap;
+}
+
+.site-nav .nav-link:hover{ color:var(--cream); }
+
+.site-nav .nav-link.is-current{
+  color:var(--ink);
+  background:var(--saffron);
+  font-weight:600;
 }
 
 .brand{
@@ -110,7 +136,8 @@ a{ color:inherit; text-decoration:none; }
 /* ---------- hub / landing hero ---------- */
 
 .hero{
-  padding:56px clamp(20px,5vw,56px) 24px;
+  padding:40px clamp(20px,5vw,56px) 24px;
+  perspective:1000px;
 }
 
 .hero h1{
@@ -119,6 +146,17 @@ a{ color:inherit; text-decoration:none; }
   line-height:1.5;
   margin:0 0 18px;
   color:var(--cream);
+  transform-style:preserve-3d;
+  animation:titleFlip .8s cubic-bezier(.22,.9,.32,1) both;
+}
+
+@keyframes titleFlip{
+  from{ transform:rotateX(-40deg) translateY(-10px); opacity:0; }
+  to{ transform:rotateX(0deg) translateY(0); opacity:1; }
+}
+
+@media (prefers-reduced-motion:reduce){
+  .hero h1{ animation:none; }
 }
 
 .hero p{
@@ -395,6 +433,22 @@ a{ color:inherit; text-decoration:none; }
   margin:0 clamp(20px,5vw,56px) 20px;
   perspective:1600px;
   perspective-origin:50% 45%;
+}
+
+.floor{
+  position:absolute;
+  left:10%;
+  right:10%;
+  bottom:-6%;
+  height:40%;
+  background:
+    linear-gradient(90deg, transparent 0%, var(--panel-2) 50%, transparent 100%) 0 0 / 60px 100% repeat-x,
+    linear-gradient(0deg, rgba(255,159,28,0.08), transparent 70%);
+  transform:rotateX(78deg);
+  transform-origin:center top;
+  opacity:0.5;
+  mask-image:linear-gradient(to bottom, black, transparent);
+  pointer-events:none;
 }
 
 .carousel{

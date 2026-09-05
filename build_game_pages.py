@@ -25,6 +25,7 @@ TEMPLATE = """<!doctype html>
     <div class="game-title">{title_upper}</div>
     <div class="guest-badge" id="guestBadge"></div>
   </header>
+  <nav class="site-nav" id="siteNav"></nav>
 
   <div class="game-body">
     <div class="screen-wrap">
@@ -58,6 +59,7 @@ TEMPLATE = """<!doctype html>
   <script>
     const SLUG = "{slug}";
     Arcade.mountGuestBadge(document.getElementById("guestBadge"));
+    Arcade.mountNav(document.getElementById("siteNav"), SLUG);
 
     function renderScores() {{
       const list = Arcade.getScores(SLUG);

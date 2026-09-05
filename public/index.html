@@ -13,6 +13,7 @@
     <div class="brand">MEME<br /><span>ARCADE</span></div>
     <div class="guest-badge" id="guestBadge"></div>
   </header>
+  <nav class="site-nav" id="siteNav"></nav>
 
   <section class="hero">
     <h1>SIX CABINETS.<br/>ZERO SIGN-UPS.</h1>
@@ -20,28 +21,22 @@
   </section>
 
   <div class="stage" id="stage">
+    <div class="floor"></div>
     <div class="carousel" id="carousel"></div>
   </div>
   <div class="stage-controls">
     <button class="stage-btn" id="prevBtn" aria-label="Previous cabinet">&larr;</button>
     <button class="stage-btn" id="nextBtn" aria-label="Next cabinet">&rarr;</button>
   </div>
-  <p class="stage-hint">Drag to spin &middot; click the lit cabinet to play</p>
+  <p class="stage-hint">Drag to spin &middot; move your mouse over the stage &middot; click the lit cabinet to play</p>
 
   <footer class="site-footer">Guest scores are stored locally in this browser only — clearing site data resets them.</footer>
 
   <script src="/assets/app.js"></script>
   <script>
-    const GAMES = [
-      { slug: "Modi", title: "Modi Runner", tagline: "Endless runner — jump the obstacles, beat your best distance." },
-      { slug: "Vote-Run", title: "Vote Runner", tagline: "30-second sprint tallying votes as you play." },
-      { slug: "Flying-Kejriwal", title: "Flying Kejriwal", tagline: "Flappy-style flying game. Tap to stay airborne." },
-      { slug: "Dhurandhar", title: "Dhurandhar", tagline: "Flappy-bird style flight through a run of obstacles." },
-      { slug: "Flying-Modi", title: "Flying Modi", tagline: "Flappy-style flying game, second edition." },
-      { slug: "Helen-Keller-Simulator", title: "Helen Keller Simulator", tagline: "A 360° black void you can drag around." },
-    ];
-
+    const GAMES = Arcade.GAMES;
     Arcade.mountGuestBadge(document.getElementById("guestBadge"));
+    Arcade.mountNav(document.getElementById("siteNav"), null);
 
     const carousel = document.getElementById("carousel");
     const stage = document.getElementById("stage");
@@ -135,6 +130,22 @@
     stage.addEventListener("touchstart", (e) => dragStart(e.touches[0].clientX), { passive: true });
     stage.addEventListener("touchmove", (e) => dragMove(e.touches[0].clientX), { passive: true });
     stage.addEventListener("touchend", dragEnd);
+
+    // mouse parallax tilt on the whole stage
+    let tiltRAF = null;
+    stage.addEventListener("mousemove", (e) => {
+      const rect = stage.getBoundingClientRect();
+      const px = (e.clientX - rect.left) / rect.width - 0.5;
+      const py = (e.clientY - rect.top) / rect.height - 0.5;
+      if (tiltRAF) cancelAnimationFrame(tiltRAF);
+      tiltRAF = requestAnimationFrame(() => {
+        stage.style.transform = `rotateX(${(-py * 8).toFixed(2)}deg) rotateY(${(px * 8).toFixed(2)}deg)`;
+      });
+    });
+    stage.addEventListener("mouseleave", () => {
+      if (tiltRAF) cancelAnimationFrame(tiltRAF);
+      stage.style.transform = "rotateX(0deg) rotateY(0deg)";
+    });
 
     goTo(0);
   </script>
