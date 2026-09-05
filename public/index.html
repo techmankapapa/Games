@@ -16,10 +16,17 @@
 
   <section class="hero">
     <h1>SIX CABINETS.<br/>ZERO SIGN-UPS.</h1>
-    <p>Pick a game, play as a guest, and your best runs are saved right here on this device — no account, no email, nothing to remember.</p>
+    <p>Spin the row, line one up, click it twice to step inside. Your best runs save right here on this device — no account, no email, nothing to remember.</p>
   </section>
 
-  <main class="cabinet-grid" id="grid"></main>
+  <div class="stage" id="stage">
+    <div class="carousel" id="carousel"></div>
+  </div>
+  <div class="stage-controls">
+    <button class="stage-btn" id="prevBtn" aria-label="Previous cabinet">&larr;</button>
+    <button class="stage-btn" id="nextBtn" aria-label="Next cabinet">&rarr;</button>
+  </div>
+  <p class="stage-hint">Drag to spin &middot; click the lit cabinet to play</p>
 
   <footer class="site-footer">Guest scores are stored locally in this browser only — clearing site data resets them.</footer>
 
@@ -34,25 +41,102 @@
       { slug: "Helen-Keller-Simulator", title: "Helen Keller Simulator", tagline: "A 360° black void you can drag around." },
     ];
 
-    const grid = document.getElementById("grid");
     Arcade.mountGuestBadge(document.getElementById("guestBadge"));
 
-    GAMES.forEach((g, i) => {
+    const carousel = document.getElementById("carousel");
+    const stage = document.getElementById("stage");
+    const N = GAMES.length;
+    const ANGLE_STEP = 360 / N;
+    const RADIUS = 420;
+
+    let currentAngle = 0;
+    let activeIndex = 0;
+
+    const cabs = GAMES.map((g, i) => {
       const best = Arcade.getBest(g.slug);
-      const card = document.createElement("a");
-      card.href = `/${g.slug}/`;
-      card.className = "cabinet";
-      card.innerHTML = `
+      const el = document.createElement("div");
+      el.className = "cab-3d";
+      el.style.transform = `rotateY(${i * ANGLE_STEP}deg) translateZ(${RADIUS}px)`;
+      el.innerHTML = `
         <div class="cabinet-number">CAB. ${String(i + 1).padStart(2, "0")}</div>
+        <div class="cab-screen">${String(i + 1).padStart(2, "0")}</div>
         <h2 class="cabinet-title">${g.title}</h2>
         <p class="cabinet-tagline">${g.tagline}</p>
         <div class="cabinet-footer">
-          <span class="best-score ${best === null ? "none" : ""}">${best === null ? "No run saved yet" : "Best: " + best}</span>
+          <span class="best-score ${best === null ? "none" : ""}">${best === null ? "No run saved" : "Best: " + best}</span>
           <span class="play-arrow">PLAY</span>
         </div>
       `;
-      grid.appendChild(card);
+      el.addEventListener("click", () => onCabClick(i));
+      carousel.appendChild(el);
+      return el;
     });
+
+    function updateActive() {
+      const normalized = (((-currentAngle % 360) + 360) % 360);
+      activeIndex = Math.round(normalized / ANGLE_STEP) % N;
+      cabs.forEach((el, i) => el.classList.toggle("is-active", i === activeIndex));
+    }
+
+    function goTo(index) {
+      currentAngle = -index * ANGLE_STEP;
+      carousel.style.transform = `rotateY(${currentAngle}deg)`;
+      updateActive();
+    }
+
+    let suppressClick = false;
+
+    function onCabClick(i) {
+      if (suppressClick) return;
+      if (i === activeIndex) {
+        window.location.href = `/${GAMES[i].slug}/`;
+      } else {
+        goTo(i);
+      }
+    }
+
+    document.getElementById("prevBtn").addEventListener("click", () => goTo(((activeIndex - 1) % N + N) % N));
+    document.getElementById("nextBtn").addEventListener("click", () => goTo((activeIndex + 1) % N));
+
+    // drag to spin
+    let dragging = false;
+    let startX = 0;
+    let startAngle = 0;
+    let moved = false;
+
+    function dragStart(x) {
+      dragging = true;
+      moved = false;
+      startX = x;
+      startAngle = currentAngle;
+      carousel.classList.add("dragging");
+    }
+    function dragMove(x) {
+      if (!dragging) return;
+      const dx = x - startX;
+      if (Math.abs(dx) > 4) moved = true;
+      currentAngle = startAngle + dx * 0.3;
+      carousel.style.transform = `rotateY(${currentAngle}deg)`;
+    }
+    function dragEnd() {
+      if (!dragging) return;
+      dragging = false;
+      carousel.classList.remove("dragging");
+      goTo(Math.round(-currentAngle / ANGLE_STEP + N * 10) % N);
+      if (moved) {
+        suppressClick = true;
+        setTimeout(() => { suppressClick = false; }, 50);
+      }
+    }
+
+    stage.addEventListener("mousedown", (e) => dragStart(e.clientX));
+    window.addEventListener("mousemove", (e) => dragMove(e.clientX));
+    window.addEventListener("mouseup", dragEnd);
+    stage.addEventListener("touchstart", (e) => dragStart(e.touches[0].clientX), { passive: true });
+    stage.addEventListener("touchmove", (e) => dragMove(e.touches[0].clientX), { passive: true });
+    stage.addEventListener("touchend", dragEnd);
+
+    goTo(0);
   </script>
 </body>
 </html>
