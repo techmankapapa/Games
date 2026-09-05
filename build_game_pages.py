@@ -73,6 +73,7 @@ TEMPLATE = """<!doctype html>
 
   <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
   <script src="/assets/firebase-config.js"></script>
   <script src="/assets/app.js"></script>
   <script>
@@ -98,6 +99,12 @@ TEMPLATE = """<!doctype html>
       t.classList.add("show");
       setTimeout(() => t.classList.remove("show"), 1600);
     }}
+
+    // Re-draw the list once cloud scores for this account come back
+    // and get merged in (see Arcade.syncFromCloud in app.js) — this
+    // is what makes a score follow the *account* across devices,
+    // not just sit in this browser's localStorage.
+    window.addEventListener("arcade:scores-synced", renderScores);
 
     document.getElementById("scoreForm").addEventListener("submit", (e) => {{
       e.preventDefault();

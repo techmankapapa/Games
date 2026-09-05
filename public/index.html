@@ -34,6 +34,7 @@
 
   <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
   <script src="/assets/firebase-config.js"></script>
   <script src="/assets/app.js"></script>
   <script>
@@ -56,13 +57,15 @@
       el.className = "cab-3d";
       el.style.transform = `rotateY(${i * ANGLE_STEP}deg) translateZ(${RADIUS}px)`;
       el.innerHTML = `
-        <div class="cabinet-number">CAB. ${String(i + 1).padStart(2, "0")}</div>
-        <div class="cab-screen">${String(i + 1).padStart(2, "0")}</div>
-        <h2 class="cabinet-title">${g.title}</h2>
-        <p class="cabinet-tagline">${g.tagline}</p>
-        <div class="cabinet-footer">
-          <span class="best-score ${best === null ? "none" : ""}">${best === null ? "No run saved" : "Best: " + best}</span>
-          <span class="play-arrow">PLAY</span>
+        <div class="cab-3d-inner" style="animation-delay:${(i * 0.35).toFixed(2)}s">
+          <div class="cabinet-number">CAB. ${String(i + 1).padStart(2, "0")}</div>
+          <div class="cab-screen">${String(i + 1).padStart(2, "0")}</div>
+          <h2 class="cabinet-title">${g.title}</h2>
+          <p class="cabinet-tagline">${g.tagline}</p>
+          <div class="cabinet-footer">
+            <span class="best-score ${best === null ? "none" : ""}">${best === null ? "No run saved" : "Best: " + best}</span>
+            <span class="play-arrow">PLAY</span>
+          </div>
         </div>
       `;
       el.addEventListener("click", () => onCabClick(i));
@@ -84,10 +87,23 @@
 
     let suppressClick = false;
 
+    // Dramatic "dive into the screen" transition before actually
+    // navigating to the game — a flash + zoom instead of an instant
+    // jump. Runs for the same duration as the CSS warp-zoom animation.
+    function warpInto(slug) {
+      const flash = document.createElement("div");
+      flash.className = "warp-flash";
+      document.body.appendChild(flash);
+      document.body.classList.add("warp-active");
+      setTimeout(() => {
+        window.location.href = `/${slug}/`;
+      }, 520);
+    }
+
     function onCabClick(i) {
       if (suppressClick) return;
       if (i === activeIndex) {
-        window.location.href = `/${GAMES[i].slug}/`;
+        warpInto(GAMES[i].slug);
       } else {
         goTo(i);
       }
@@ -151,6 +167,19 @@
     });
 
     goTo(0);
+
+    // Refresh each cabinet's "Best: N" badge once cloud scores for
+    // this account come back and get merged in.
+    window.addEventListener("arcade:scores-synced", () => {
+      cabs.forEach((el, i) => {
+        const best = Arcade.getBest(GAMES[i].slug);
+        const badge = el.querySelector(".best-score");
+        if (badge) {
+          badge.textContent = best === null ? "No run saved" : "Best: " + best;
+          badge.classList.toggle("none", best === null);
+        }
+      });
+    });
   </script>
 </body>
 </html>

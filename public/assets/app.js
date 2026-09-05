@@ -1,10 +1,12 @@
 /* ---------------------------------------------------------
    Meme Arcade — auth (Google / email+password / guest) via
-   Firebase, plus guest identity & local score storage.
+   Firebase, plus guest identity & score storage (local +
+   cloud via Firestore, synced to the signed-in account).
 
    Requires, loaded BEFORE this file:
      firebase-app-compat.js
      firebase-auth-compat.js
+     firebase-firestore-compat.js
      assets/firebase-config.js   (your project keys)
 --------------------------------------------------------- */
 
@@ -278,6 +280,74 @@ const Arcade = (() => {
     { slug: "Helen-Keller-Simulator", title: "Helen Keller Simulator", tagline: "A 360° black void you can drag around." },
   ];
 
+  // ---------- cloud sync (Firestore) ----------
+  // Scores live in localStorage first (instant, works offline / with
+  // Firebase not configured), then get mirrored to Firestore under
+  // /arcadeScores/{uid} whenever a user (including a guest — anonymous
+  // users have a uid too) is signed in. On sign-in, the cloud copy is
+  // pulled down and merged with whatever's on this device, so scores
+  // follow the *account*, not just the browser. Plain one-off guests
+  // (no password set) still get this as a same-browser backup; it
+  // only becomes truly cross-device once they've set a guest password
+  // or used Google/email sign-in, since that's what keeps the uid
+  // stable across devices.
+  function hasCloud() {
+    return typeof firebase !== "undefined" && firebase.apps && firebase.apps.length > 0 && typeof firebase.firestore === "function";
+  }
+
+  function cloudDoc(uid) {
+    return firebase.firestore().collection("arcadeScores").doc(uid);
+  }
+
+  function mergeLists(a, b) {
+    const seen = new Set();
+    const combined = [];
+    (a || []).concat(b || []).forEach((entry) => {
+      if (!entry || !Number.isFinite(entry.value)) return;
+      const key = entry.value + ":" + entry.ts;
+      if (seen.has(key)) return;
+      seen.add(key);
+      combined.push(entry);
+    });
+    combined.sort((x, y) => y.value - x.value);
+    return combined.slice(0, 10);
+  }
+
+  function pushScoreToCloud(uid, slug, list) {
+    if (!hasCloud()) return;
+    cloudDoc(uid)
+      .set({ [slug]: list }, { merge: true })
+      .catch((e) => console.warn("[Arcade] cloud save failed:", e.message));
+  }
+
+  // Pulls this account's cloud scores, merges each game's list with
+  // whatever's already stored locally, writes the merged result back
+  // to both localStorage and Firestore, then tells any listening page
+  // to re-render.
+  function syncFromCloud(uid) {
+    if (!hasCloud() || !uid) return;
+    cloudDoc(uid)
+      .get()
+      .then((doc) => {
+        const cloudData = doc.exists ? doc.data() : {};
+        let changed = false;
+        GAMES.forEach((g) => {
+          const local = getScores(g.slug);
+          const cloud = cloudData[g.slug] || [];
+          const merged = mergeLists(local, cloud);
+          if (JSON.stringify(merged) !== JSON.stringify(local)) {
+            localStorage.setItem(scoreKey(g.slug), JSON.stringify(merged));
+            changed = true;
+          }
+          if (JSON.stringify(merged) !== JSON.stringify(cloud)) {
+            pushScoreToCloud(uid, g.slug, merged);
+          }
+        });
+        if (changed) window.dispatchEvent(new CustomEvent("arcade:scores-synced"));
+      })
+      .catch((e) => console.warn("[Arcade] cloud sync failed:", e.message));
+  }
+
   function getGuestId() {
     let id = localStorage.getItem(GUEST_KEY);
     if (!id) {
@@ -305,6 +375,8 @@ const Arcade = (() => {
     list.sort((a, b) => b.value - a.value);
     const trimmed = list.slice(0, 10);
     localStorage.setItem(scoreKey(slug), JSON.stringify(trimmed));
+    const user = ArcadeAuth.getUser();
+    if (user) pushScoreToCloud(user.uid, slug, trimmed);
     return trimmed;
   }
 
@@ -345,6 +417,7 @@ const Arcade = (() => {
         `;
         el.querySelector("#acctSwitch").addEventListener("click", () => ArcadeAuth.openModal());
       }
+      if (user) syncFromCloud(user.uid);
     }
 
     render(ArcadeAuth.getUser());
@@ -360,5 +433,5 @@ const Arcade = (() => {
     el.innerHTML = home + links;
   }
 
-  return { GAMES, getGuestId, getScores, saveScore, getBest, formatTime, mountGuestBadge, mountNav };
+  return { GAMES, getGuestId, getScores, saveScore, getBest, formatTime, mountGuestBadge, mountNav, syncFromCloud };
 })();
