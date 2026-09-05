@@ -17,7 +17,7 @@
 
   <section class="hero">
     <h1>SIX CABINETS.<br/>ZERO SIGN-UPS.</h1>
-    <p>Spin the row, line one up, click it twice to step inside. Your best runs save right here on this device — no account, no email, nothing to remember.</p>
+    <p>Spin the row, line one up, click it twice to step inside. Sign in to keep your name, or just play as a guest — either way your best runs save right here on this device.</p>
   </section>
 
   <div class="stage" id="stage">
@@ -32,6 +32,9 @@
 
   <footer class="site-footer">Guest scores are stored locally in this browser only — clearing site data resets them.</footer>
 
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+  <script src="/assets/firebase-config.js"></script>
   <script src="/assets/app.js"></script>
   <script>
     const GAMES = Arcade.GAMES;

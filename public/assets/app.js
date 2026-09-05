@@ -1,7 +1,193 @@
 /* ---------------------------------------------------------
-   Meme Arcade — guest identity & local score storage
-   No login, no accounts. Everything lives in this browser's
-   localStorage, tied to a randomly generated guest tag.
+   Meme Arcade — auth (Google / email+password / guest) via
+   Firebase, plus guest identity & local score storage.
+
+   Requires, loaded BEFORE this file:
+     firebase-app-compat.js
+     firebase-auth-compat.js
+     assets/firebase-config.js   (your project keys)
+--------------------------------------------------------- */
+
+const ArcadeAuth = (() => {
+  const listeners = [];
+  let currentUser = null;
+  let modalEl = null;
+
+  function ready() {
+    return typeof firebase !== "undefined" && firebase.apps && firebase.apps.length > 0;
+  }
+
+  function init() {
+    if (!ready()) {
+      console.warn(
+        "[ArcadeAuth] Firebase isn't configured yet — paste your project keys into assets/firebase-config.js"
+      );
+      return;
+    }
+    firebase.auth().onAuthStateChanged((user) => {
+      currentUser = user;
+      listeners.forEach((fn) => fn(user));
+    });
+  }
+
+  function onChange(fn) {
+    listeners.push(fn);
+    fn(currentUser);
+  }
+
+  function getUser() {
+    return currentUser;
+  }
+
+  function label(user) {
+    if (!user) return null;
+    if (user.isAnonymous) return `GUEST-${user.uid.slice(0, 4).toUpperCase()}`;
+    return user.displayName || (user.email ? user.email.split("@")[0] : "Player");
+  }
+
+  function signInWithGoogle() {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    return firebase.auth().signInWithPopup(provider);
+  }
+
+  function signInGuest() {
+    return firebase.auth().signInAnonymously();
+  }
+
+  function signUpEmail(username, email, password) {
+    return firebase
+      .auth()
+      .createUserWithEmailAndPassword(email, password)
+      .then((cred) => cred.user.updateProfile({ displayName: username }).then(() => cred));
+  }
+
+  function signInEmail(email, password) {
+    return firebase.auth().signInWithEmailAndPassword(email, password);
+  }
+
+  function signOutUser() {
+    return firebase.auth().signOut();
+  }
+
+  function buildModal() {
+    if (modalEl) return modalEl;
+
+    const wrap = document.createElement("div");
+    wrap.className = "auth-overlay";
+    wrap.innerHTML = `
+      <div class="auth-modal" role="dialog" aria-modal="true" aria-label="Sign in">
+        <button type="button" class="auth-close" aria-label="Close">&times;</button>
+        <h2>Sign in to Meme Arcade</h2>
+        <p class="auth-sub">Pick one — guest mode always works, no pressure.</p>
+
+        <button type="button" class="auth-btn auth-google" id="authGoogleBtn">
+          <span class="auth-icon">G</span> Continue with Google
+        </button>
+        <button type="button" class="auth-btn auth-guest" id="authGuestBtn">
+          Continue as Guest
+        </button>
+
+        <div class="auth-divider"><span>or use a username &amp; password</span></div>
+
+        <div class="auth-tabs">
+          <button type="button" class="auth-tab is-active" data-mode="login">Log in</button>
+          <button type="button" class="auth-tab" data-mode="signup">Sign up</button>
+        </div>
+
+        <form class="auth-form" id="authForm">
+          <input type="text" id="authUsername" placeholder="Username" class="auth-signup-only" style="display:none" />
+          <input type="email" id="authEmail" placeholder="Email" required />
+          <input type="password" id="authPassword" placeholder="Password (6+ characters)" required minlength="6" />
+          <button type="submit" class="auth-btn auth-submit" id="authSubmitBtn">Log in</button>
+        </form>
+
+        <p class="auth-error" id="authError"></p>
+      </div>
+    `;
+    document.body.appendChild(wrap);
+    modalEl = wrap;
+
+    const close = () => {
+      wrap.classList.remove("show");
+      wrap.querySelector("#authError").textContent = "";
+    };
+    wrap.querySelector(".auth-close").addEventListener("click", close);
+    wrap.addEventListener("click", (e) => {
+      if (e.target === wrap) close();
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") close();
+    });
+
+    function showError(err) {
+      wrap.querySelector("#authError").textContent = err && err.message ? err.message : "Something went wrong.";
+    }
+
+    wrap.querySelector("#authGoogleBtn").addEventListener("click", () => {
+      signInWithGoogle().then(close).catch(showError);
+    });
+    wrap.querySelector("#authGuestBtn").addEventListener("click", () => {
+      signInGuest().then(close).catch(showError);
+    });
+
+    let mode = "login";
+    const tabs = wrap.querySelectorAll(".auth-tab");
+    const usernameField = wrap.querySelector("#authUsername");
+    const submitBtn = wrap.querySelector("#authSubmitBtn");
+    tabs.forEach((tab) => {
+      tab.addEventListener("click", () => {
+        mode = tab.dataset.mode;
+        tabs.forEach((t) => t.classList.toggle("is-active", t === tab));
+        usernameField.style.display = mode === "signup" ? "block" : "none";
+        submitBtn.textContent = mode === "signup" ? "Sign up" : "Log in";
+        wrap.querySelector("#authError").textContent = "";
+      });
+    });
+
+    wrap.querySelector("#authForm").addEventListener("submit", (e) => {
+      e.preventDefault();
+      wrap.querySelector("#authError").textContent = "";
+      const email = wrap.querySelector("#authEmail").value.trim();
+      const password = wrap.querySelector("#authPassword").value;
+      const username = usernameField.value.trim();
+      const action =
+        mode === "signup"
+          ? signUpEmail(username || email.split("@")[0], email, password)
+          : signInEmail(email, password);
+      action.then(close).catch(showError);
+    });
+
+    return wrap;
+  }
+
+  function openModal() {
+    if (!ready()) {
+      alert("Firebase isn't configured yet — paste your project keys into assets/firebase-config.js first.");
+      return;
+    }
+    buildModal().classList.add("show");
+  }
+
+  return {
+    init,
+    onChange,
+    getUser,
+    label,
+    signInWithGoogle,
+    signInGuest,
+    signUpEmail,
+    signInEmail,
+    signOut: signOutUser,
+    openModal,
+  };
+})();
+
+ArcadeAuth.init();
+
+/* ---------------------------------------------------------
+   Guest identity & local score storage (unchanged behavior),
+   now aware of ArcadeAuth so the badge reflects a signed-in
+   user when one exists.
 --------------------------------------------------------- */
 
 const Arcade = (() => {
@@ -59,7 +245,35 @@ const Arcade = (() => {
 
   function mountGuestBadge(el) {
     if (!el) return;
-    el.innerHTML = `<span class="guest-dot"></span>Playing as <strong>${getGuestId()}</strong>`;
+
+    function render(user) {
+      if (user && !user.isAnonymous) {
+        el.innerHTML = `
+          <span class="guest-dot signed-in"></span>
+          <span>Playing as <strong>${ArcadeAuth.label(user)}</strong></span>
+          <button type="button" class="mini-link" id="acctSignOut">Sign out</button>
+        `;
+        const out = el.querySelector("#acctSignOut");
+        if (out) out.addEventListener("click", () => ArcadeAuth.signOut());
+      } else if (user && user.isAnonymous) {
+        el.innerHTML = `
+          <span class="guest-dot"></span>
+          <span>Playing as <strong>${ArcadeAuth.label(user)}</strong></span>
+          <button type="button" class="mini-link" id="acctSwitch">Sign in</button>
+        `;
+        el.querySelector("#acctSwitch").addEventListener("click", () => ArcadeAuth.openModal());
+      } else {
+        el.innerHTML = `
+          <span class="guest-dot"></span>
+          <span>Playing as <strong>${getGuestId()}</strong></span>
+          <button type="button" class="mini-link" id="acctSwitch">Sign in / Sign up</button>
+        `;
+        el.querySelector("#acctSwitch").addEventListener("click", () => ArcadeAuth.openModal());
+      }
+    }
+
+    render(ArcadeAuth.getUser());
+    ArcadeAuth.onChange(render);
   }
 
   function mountNav(el, currentSlug) {
