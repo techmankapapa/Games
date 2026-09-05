@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Flying Modi — Meme Arcade</title>
+<link rel="stylesheet" href="/assets/style.css" />
+</head>
+<body class="game-page">
+  <div class="scanlines"></div>
+
+  <header class="game-header">
+    <a class="back-link" href="/">&larr; All cabinets</a>
+    <div class="game-title">FLYING MODI</div>
+    <div class="guest-badge" id="guestBadge"></div>
+  </header>
+
+  <div class="game-body">
+    <div class="screen-wrap">
+      <div class="cabinet-bezel">
+        <iframe src="https://techmankapapa.github.io/Flying-Modi/" title="Flying Modi" allow="autoplay"></iframe>
+      </div>
+    </div>
+
+    <aside class="side-panel">
+      <div class="panel-block">
+        <h3>Log your score</h3>
+        <form class="score-form" id="scoreForm">
+          <input type="number" inputmode="numeric" id="scoreInput" placeholder="Score shown in-game" required />
+          <button type="submit">Save</button>
+        </form>
+        <p class="hint">This game runs in an embedded frame we don't control, so it can't hand us your score automatically. Type in the number shown on screen and save it here — it stays on this device under your guest tag.</p>
+      </div>
+
+      <div class="panel-block">
+        <h3>Your best runs</h3>
+        <ul class="score-list" id="scoreList"></ul>
+      </div>
+    </aside>
+  </div>
+
+  <div class="toast" id="toast">Saved!</div>
+
+  <footer class="site-footer">Guest scores are stored locally in this browser only.</footer>
+
+  <script src="/assets/app.js"></script>
+  <script>
+    const SLUG = "Flying-Modi";
+    Arcade.mountGuestBadge(document.getElementById("guestBadge"));
+
+    function renderScores() {
+      const list = Arcade.getScores(SLUG);
+      const el = document.getElementById("scoreList");
+      if (!list.length) {
+        el.innerHTML = '<li class="empty-state">No runs saved yet — play, then log your score.</li>';
+        return;
+      }
+      el.innerHTML = list
+        .map(s => `<li><span>${s.value}</span><span class="ts">${Arcade.formatTime(s.ts)}</span></li>`)
+        .join("");
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById("toast");
+      t.textContent = msg;
+      t.classList.add("show");
+      setTimeout(() => t.classList.remove("show"), 1600);
+    }
+
+    document.getElementById("scoreForm").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const input = document.getElementById("scoreInput");
+      const saved = Arcade.saveScore(SLUG, input.value);
+      if (saved) {
+        showToast("Score saved");
+        input.value = "";
+        renderScores();
+      }
+    });
+
+    // If this game is ever updated to broadcast its score via
+    // window.parent.postMessage({ type: 'arcade-score', value }, '*'),
+    // it will be picked up and saved automatically — no page changes needed.
+    window.addEventListener("message", (event) => {
+      const data = event.data;
+      if (data && data.type === "arcade-score" && Number.isFinite(Number(data.value))) {
+        Arcade.saveScore(SLUG, data.value);
+        showToast("Score auto-saved");
+        renderScores();
+      }
+    });
+
+    renderScores();
+  </script>
+</body>
+</html>

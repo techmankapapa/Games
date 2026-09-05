@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Meme Arcade — pick a cabinet</title>
+<link rel="stylesheet" href="/assets/style.css" />
+</head>
+<body>
+  <div class="scanlines"></div>
+
+  <header class="topbar">
+    <div class="brand">MEME<br /><span>ARCADE</span></div>
+    <div class="guest-badge" id="guestBadge"></div>
+  </header>
+
+  <section class="hero">
+    <h1>SIX CABINETS.<br/>ZERO SIGN-UPS.</h1>
+    <p>Pick a game, play as a guest, and your best runs are saved right here on this device — no account, no email, nothing to remember.</p>
+  </section>
+
+  <main class="cabinet-grid" id="grid"></main>
+
+  <footer class="site-footer">Guest scores are stored locally in this browser only — clearing site data resets them.</footer>
+
+  <script src="/assets/app.js"></script>
+  <script>
+    const GAMES = [
+      { slug: "Modi", title: "Modi Runner", tagline: "Endless runner — jump the obstacles, beat your best distance." },
+      { slug: "Vote-Run", title: "Vote Runner", tagline: "30-second sprint tallying votes as you play." },
+      { slug: "Flying-Kejriwal", title: "Flying Kejriwal", tagline: "Flappy-style flying game. Tap to stay airborne." },
+      { slug: "Dhurandhar", title: "Dhurandhar", tagline: "Flappy-bird style flight through a run of obstacles." },
+      { slug: "Flying-Modi", title: "Flying Modi", tagline: "Flappy-style flying game, second edition." },
+      { slug: "Helen-Keller-Simulator", title: "Helen Keller Simulator", tagline: "A 360° black void you can drag around." },
+    ];
+
+    const grid = document.getElementById("grid");
+    Arcade.mountGuestBadge(document.getElementById("guestBadge"));
+
+    GAMES.forEach((g, i) => {
+      const best = Arcade.getBest(g.slug);
+      const card = document.createElement("a");
+      card.href = `/${g.slug}/`;
+      card.className = "cabinet";
+      card.innerHTML = `
+        <div class="cabinet-number">CAB. ${String(i + 1).padStart(2, "0")}</div>
+        <h2 class="cabinet-title">${g.title}</h2>
+        <p class="cabinet-tagline">${g.tagline}</p>
+        <div class="cabinet-footer">
+          <span class="best-score ${best === null ? "none" : ""}">${best === null ? "No run saved yet" : "Best: " + best}</span>
+          <span class="play-arrow">PLAY</span>
+        </div>
+      `;
+      grid.appendChild(card);
+    });
+  </script>
+</body>
+</html>
