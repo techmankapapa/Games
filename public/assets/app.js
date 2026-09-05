@@ -54,6 +54,28 @@ const ArcadeAuth = (() => {
     return firebase.auth().signInAnonymously();
   }
 
+  // Guest account that also gets a chosen username and, optionally, a
+  // password — so the same guest can come back later and log in for
+  // real instead of getting a fresh random GUEST-#### each time.
+  // This "links" an email+password credential onto the anonymous
+  // account (Firebase's official upgrade path), so the uid — and
+  // anything tied to it — doesn't change.
+  function signInGuestWithProfile(username, email, password) {
+    return firebase
+      .auth()
+      .signInAnonymously()
+      .then((cred) => {
+        const user = cred.user;
+        const tasks = [];
+        if (username) tasks.push(user.updateProfile({ displayName: username }));
+        if (email && password) {
+          const credential = firebase.auth.EmailAuthProvider.credential(email, password);
+          tasks.push(user.linkWithCredential(credential));
+        }
+        return Promise.all(tasks).then(() => cred);
+      });
+  }
+
   function signUpEmail(username, email, password) {
     return firebase
       .auth()
@@ -67,6 +89,27 @@ const ArcadeAuth = (() => {
 
   function signOutUser() {
     return firebase.auth().signOut();
+  }
+
+  // Turns raw Firebase error codes into messages a player can actually
+  // use. In particular, closing the Google popup isn't a "failure" —
+  // it's just the user changing their mind — so we don't show it as
+  // scary red error text at all.
+  function humanizeAuthError(err) {
+    const code = err && err.code;
+    const silent = new Set(["auth/popup-closed-by-user", "auth/cancelled-popup-request"]);
+    if (silent.has(code)) return null;
+    const map = {
+      "auth/popup-blocked": "Your browser blocked the sign-in popup — allow popups for this site and try again.",
+      "auth/email-already-in-use": "That email is already registered — try logging in instead.",
+      "auth/credential-already-in-use": "That email/password is already linked to a different account.",
+      "auth/invalid-email": "That doesn't look like a valid email address.",
+      "auth/weak-password": "Password needs to be at least 6 characters.",
+      "auth/wrong-password": "Incorrect password.",
+      "auth/user-not-found": "No account found with that email.",
+      "auth/network-request-failed": "Network error — check your connection and try again.",
+    };
+    return (code && map[code]) || (err && err.message) || "Something went wrong.";
   }
 
   function buildModal() {
@@ -86,6 +129,15 @@ const ArcadeAuth = (() => {
         <button type="button" class="auth-btn auth-guest" id="authGuestBtn">
           Continue as Guest
         </button>
+        <button type="button" class="mini-link auth-guest-toggle" id="authGuestMoreBtn">
+          Want a name &amp; password on your guest account?
+        </button>
+        <div class="auth-guest-panel" id="authGuestPanel">
+          <input type="text" id="guestUsername" placeholder="Guest username" />
+          <input type="email" id="guestEmail" placeholder="Email (optional — lets you log back in)" />
+          <input type="password" id="guestPassword" placeholder="Password (6+ characters, optional)" minlength="6" />
+          <button type="button" class="auth-btn auth-submit" id="guestSaveBtn">Continue as Guest</button>
+        </div>
 
         <div class="auth-divider"><span>or use a username &amp; password</span></div>
 
@@ -120,7 +172,8 @@ const ArcadeAuth = (() => {
     });
 
     function showError(err) {
-      wrap.querySelector("#authError").textContent = err && err.message ? err.message : "Something went wrong.";
+      const msg = humanizeAuthError(err);
+      wrap.querySelector("#authError").textContent = msg || "";
     }
 
     wrap.querySelector("#authGoogleBtn").addEventListener("click", () => {
@@ -128,6 +181,27 @@ const ArcadeAuth = (() => {
     });
     wrap.querySelector("#authGuestBtn").addEventListener("click", () => {
       signInGuest().then(close).catch(showError);
+    });
+
+    const guestMoreBtn = wrap.querySelector("#authGuestMoreBtn");
+    const guestPanel = wrap.querySelector("#authGuestPanel");
+    guestMoreBtn.addEventListener("click", () => {
+      const opening = !guestPanel.classList.contains("show");
+      guestPanel.classList.toggle("show", opening);
+      guestMoreBtn.textContent = opening
+        ? "Never mind, just take me in as a plain guest"
+        : "Want a name & password on your guest account?";
+    });
+    wrap.querySelector("#guestSaveBtn").addEventListener("click", () => {
+      wrap.querySelector("#authError").textContent = "";
+      const username = wrap.querySelector("#guestUsername").value.trim();
+      const email = wrap.querySelector("#guestEmail").value.trim();
+      const password = wrap.querySelector("#guestPassword").value;
+      if ((email && !password) || (!email && password)) {
+        wrap.querySelector("#authError").textContent = "Fill in both email and password, or leave both blank.";
+        return;
+      }
+      signInGuestWithProfile(username, email, password).then(close).catch(showError);
     });
 
     let mode = "login";
@@ -175,6 +249,7 @@ const ArcadeAuth = (() => {
     label,
     signInWithGoogle,
     signInGuest,
+    signInGuestWithProfile,
     signUpEmail,
     signInEmail,
     signOut: signOutUser,

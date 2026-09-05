@@ -1,13 +1,18 @@
 import os
 
 GAMES = [
-    {"slug": "Modi", "title": "Modi Runner", "source": "https://techmankapapa.github.io/Modi/"},
-    {"slug": "Vote-Run", "title": "Vote Runner", "source": "https://techmankapapa.github.io/Vote-Run/"},
-    {"slug": "Flying-Kejriwal", "title": "Flying Kejriwal", "source": "https://techmankapapa.github.io/Flying-Kejriwal/"},
-    {"slug": "Dhurandhar", "title": "Dhurandhar", "source": "https://techmankapapa.github.io/Dhurandhar/"},
-    {"slug": "Flying-Modi", "title": "Flying Modi", "source": "https://techmankapapa.github.io/Flying-Modi/"},
-    {"slug": "Helen-Keller-Simulator", "title": "Helen Keller Simulator", "source": "https://techmankapapa.github.io/Helen-Keller-Simulator/"},
+    {"slug": "Modi", "title": "Modi Runner", "source": "https://techmankapapa.github.io/Modi/", "aspect": "4 / 3"},
+    {"slug": "Vote-Run", "title": "Vote Runner", "source": "https://techmankapapa.github.io/Vote-Run/", "aspect": "4 / 3"},
+    {"slug": "Flying-Kejriwal", "title": "Flying Kejriwal", "source": "https://techmankapapa.github.io/Flying-Kejriwal/", "aspect": "3 / 4"},
+    {"slug": "Dhurandhar", "title": "Dhurandhar", "source": "https://techmankapapa.github.io/Dhurandhar/", "aspect": "3 / 4"},
+    {"slug": "Flying-Modi", "title": "Flying Modi", "source": "https://techmankapapa.github.io/Flying-Modi/", "aspect": "3 / 4"},
+    {"slug": "Helen-Keller-Simulator", "title": "Helen Keller Simulator", "source": "https://techmankapapa.github.io/Helen-Keller-Simulator/", "aspect": "4 / 3"},
 ]
+# "aspect" controls how tall the cabinet box is. The flappy-style games
+# (Flying-Kejriwal, Flying-Modi, Dhurandhar) are built for a taller,
+# more portrait-ish window — leaving them at the old fixed 4:3 box is
+# what made the play area look squashed/"too short". Landscape-style
+# games (the runner, the vote sprint) keep the wider 4:3 box.
 
 TEMPLATE = """<!doctype html>
 <html lang="en">
@@ -16,6 +21,12 @@ TEMPLATE = """<!doctype html>
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>{title} — Meme Arcade</title>
 <link rel="stylesheet" href="/assets/style.css" />
+<!-- Opens the connection to the game's host early (DNS + TLS) so the
+     iframe's own assets — including its background image — start
+     downloading sooner once the src is set. This is a real speed-up,
+     not cosmetic, but it can't make the remote server itself faster. -->
+<link rel="preconnect" href="https://techmankapapa.github.io" crossorigin />
+<link rel="dns-prefetch" href="https://techmankapapa.github.io" />
 </head>
 <body class="game-page">
   <div class="scanlines"></div>
@@ -29,8 +40,12 @@ TEMPLATE = """<!doctype html>
 
   <div class="game-body">
     <div class="screen-wrap">
-      <div class="cabinet-bezel" id="bezel">
+      <div class="cabinet-bezel" id="bezel" style="--cab-aspect: {aspect}">
         <button type="button" class="fullscreen-btn" id="fullscreenBtn" title="Toggle fullscreen">&#x26F6;</button>
+        <div class="cabinet-loading" id="cabinetLoading">
+          <div class="loading-spinner"></div>
+          <p>Loading game&hellip;</p>
+        </div>
         <iframe src="{source}" title="{title}" allow="autoplay; fullscreen" allowfullscreen></iframe>
       </div>
     </div>
@@ -111,6 +126,19 @@ TEMPLATE = """<!doctype html>
       }}
     }});
 
+    // Hide the loading overlay once the iframe's document has loaded.
+    // Note: cross-origin means we can't know when the game's own
+    // background image/assets are done — the "load" event only tells
+    // us the outer page arrived — but it's still the earliest honest
+    // signal we have, and the preconnect tag above genuinely speeds
+    // that part up. A timeout is added so the overlay never gets
+    // stuck forever if "load" doesn't fire for some reason.
+    const gameFrame = document.querySelector("#bezel iframe");
+    const loadingEl = document.getElementById("cabinetLoading");
+    function hideLoading() {{ loadingEl.classList.add("is-hidden"); }}
+    if (gameFrame) gameFrame.addEventListener("load", hideLoading);
+    setTimeout(hideLoading, 9000);
+
     // Fullscreen toggle for the cabinet. This works regardless of the
     // iframe's origin — it just expands the container element, no access
     // to the iframe's internals required.
@@ -118,14 +146,33 @@ TEMPLATE = """<!doctype html>
     const fsBtn = document.getElementById("fullscreenBtn");
     fsBtn.addEventListener("click", () => {{
       if (!document.fullscreenElement) {{
-        (bezel.requestFullscreen || bezel.webkitRequestFullscreen || bezel.msRequestFullscreen).call(bezel);
+        (bezel.requestFullscreen || bezel.webkitRequestFullscreen || bezel.mozRequestFullScreen || bezel.msRequestFullscreen).call(bezel);
       }} else {{
-        (document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen).call(document);
+        (document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || document.msExitFullscreen).call(document);
       }}
     }});
-    document.addEventListener("fullscreenchange", () => {{
-      fsBtn.textContent = document.fullscreenElement ? "\\u2922" : "\\u26F6";
-    }});
+
+    function onFullscreenChange() {{
+      const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement);
+      bezel.classList.toggle("is-fullscreen", isFs);
+      fsBtn.textContent = isFs ? "\\u2922" : "\\u26F6";
+      if (!isFs) {{
+        // Chrome (and some other engines) can leave a non-<video>
+        // fullscreen element's contents blank/black after exiting
+        // fullscreen — the iframe's compositor layer doesn't repaint
+        // on its own. Forcing a reflow (hide, measure, show) fixes it.
+        const frame = bezel.querySelector("iframe");
+        if (frame) {{
+          const prevDisplay = frame.style.display;
+          frame.style.display = "none";
+          void frame.offsetHeight; // forces layout flush
+          frame.style.display = prevDisplay;
+        }}
+      }}
+    }}
+    ["fullscreenchange", "webkitfullscreenchange", "mozfullscreenchange", "MSFullscreenChange"].forEach((evt) =>
+      document.addEventListener(evt, onFullscreenChange)
+    );
 
     renderScores();
   </script>
@@ -143,6 +190,7 @@ def main():
             title_upper=g["title"].upper(),
             source=g["source"],
             slug=g["slug"],
+            aspect=g["aspect"],
         )
         with open(os.path.join(folder, "index.html"), "w") as f:
             f.write(html)
