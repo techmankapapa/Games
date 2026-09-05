@@ -156,12 +156,21 @@ TEMPLATE = """<!doctype html>
       const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement);
       bezel.classList.toggle("is-fullscreen", isFs);
       fsBtn.textContent = isFs ? "\\u2922" : "\\u26F6";
-      if (!isFs) {{
+      if (isFs) {{
+        fitFullscreenFrame();
+        window.addEventListener("resize", fitFullscreenFrame);
+      }} else {{
+        window.removeEventListener("resize", fitFullscreenFrame);
+        // Hand sizing back to the normal windowed CSS (width/height:100%).
+        const frame = bezel.querySelector("iframe");
+        if (frame) {{
+          frame.style.width = "";
+          frame.style.height = "";
+        }}
         // Chrome (and some other engines) can leave a non-<video>
         // fullscreen element's contents blank/black after exiting
         // fullscreen — the iframe's compositor layer doesn't repaint
         // on its own. Forcing a reflow (hide, measure, show) fixes it.
-        const frame = bezel.querySelector("iframe");
         if (frame) {{
           const prevDisplay = frame.style.display;
           frame.style.display = "none";
@@ -170,6 +179,31 @@ TEMPLATE = """<!doctype html>
         }}
       }}
     }}
+
+    // Sizes the iframe to the game's real aspect ratio, as large as
+    // will fit on screen, and centers it — instead of stretching a
+    // narrow/tall game layout across a wide monitor, which is what
+    // left obstacles bunched on one side with empty space around them.
+    function fitFullscreenFrame() {{
+      const frame = bezel.querySelector("iframe");
+      if (!frame) return;
+      const raw = getComputedStyle(bezel).getPropertyValue("--cab-aspect") || "4 / 3";
+      const parts = raw.split("/").map((n) => parseFloat(n));
+      const ratio = parts.length === 2 && parts[0] > 0 && parts[1] > 0 ? parts[0] / parts[1] : 4 / 3;
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      let w, h;
+      if (vw / vh > ratio) {{
+        h = vh;
+        w = h * ratio;
+      }} else {{
+        w = vw;
+        h = w / ratio;
+      }}
+      frame.style.width = Math.round(w) + "px";
+      frame.style.height = Math.round(h) + "px";
+    }}
+
     ["fullscreenchange", "webkitfullscreenchange", "mozfullscreenchange", "MSFullscreenChange"].forEach((evt) =>
       document.addEventListener(evt, onFullscreenChange)
     );
