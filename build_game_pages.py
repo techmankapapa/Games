@@ -120,14 +120,15 @@ TEMPLATE = """<!doctype html>
       }}
     }}
 
-    // Sizes the iframe to the game's real aspect ratio, as large as
-    // will fit on screen (capped — see MAX_SCALE below), and centers
-    // it with explicit left/top offsets — instead of stretching a
-    // narrow/tall game layout across a wide monitor (which bunched
-    // obstacles on one side) and instead of relying on flexbox to
-    // center a top-layer fullscreen element (unreliable across
-    // browsers — Chrome in particular can pin it to the top-left
-    // corner instead of centering it).
+    // Sizes the iframe to the game's real aspect ratio and covers the
+    // entire screen — no black bars — by scaling to whichever
+    // dimension is the tighter fit and letting the other overflow off
+    // the edges (cropped by the bezel's overflow:hidden), instead of
+    // the letterboxed "shrink to fit with bars" approach. This keeps
+    // the game's own proportions correct (nothing stretched/distorted
+    // the way plain 100vw/100vh sizing was), it just means the very
+    // edges (left/right or top/bottom, whichever axis is tighter)
+    // extend past what's visible.
     function fitFullscreenFrame() {{
       const frame = bezel.querySelector("iframe");
       if (!frame) return;
@@ -138,28 +139,15 @@ TEMPLATE = """<!doctype html>
       const vh = window.innerHeight;
       let w, h;
       if (vw / vh > ratio) {{
-        h = vh;
-        w = h * ratio;
-      }} else {{
+        // viewport wider than the game's ratio: match width, let
+        // height overflow top/bottom
         w = vw;
         h = w / ratio;
-      }}
-      // The embedded game's own assets/layout were built for a fixed,
-      // fairly small viewport (this cabinet is normally capped at
-      // max-width:680px in windowed mode). Blowing it up to fill an
-      // entire large monitor stretches it well past what it was built
-      // for, and cross-origin means we can't know how gracefully (or
-      // not) the game's own CSS handles that — a fixed background
-      // tile not repeating far enough, an obstacle's spawn math
-      // assuming a much smaller canvas, etc. Capping how big we're
-      // willing to blow it up keeps fullscreen usably larger than
-      // windowed without pushing it past a size the game can actually
-      // render correctly at.
-      const MAX_W = 1000;
-      if (w > MAX_W) {{
-        const scale = MAX_W / w;
-        w *= scale;
-        h *= scale;
+      }} else {{
+        // viewport taller than the game's ratio: match height, let
+        // width overflow left/right
+        h = vh;
+        w = h * ratio;
       }}
       frame.style.width = Math.round(w) + "px";
       frame.style.height = Math.round(h) + "px";

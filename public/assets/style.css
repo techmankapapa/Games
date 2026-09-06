@@ -765,19 +765,12 @@ footer.site-footer{
   background:#000;
 }
 
-/* The game itself keeps its real aspect ratio even though the bezel
-   now fills an arbitrarily-shaped monitor — letterboxed in black —
-   instead of being stretched edge-to-edge. Stretching it is what
-   caused obstacles to bunch up on one side with empty space around
-   them: the embedded game's own layout is built for a narrow/tall
-   window, and blowing that up to a wide monitor's shape doesn't make
-   it "fill in" more content, it just gives the same narrow layout a
-   much bigger, mostly-empty canvas. JS sets the exact pixel box AND
-   its centered left/top offset on entering fullscreen (flexbox
-   centering on a top-layer fullscreen element isn't reliable across
-   browsers — Chrome in particular can pin it to the top-left corner
-   instead of centering it); position/width/height are all cleared
-   back to the normal windowed CSS on exit. */
+/* The game keeps its real aspect ratio while covering the entire
+   fullscreen viewport — no black bars — by scaling up until it fully
+   covers the screen and letting whichever edge doesn't fit (left/
+   right or top/bottom) get cropped by the bezel's overflow:hidden.
+   JS computes the exact size + centered offset; position/size are
+   cleared back to normal windowed CSS on exit. */
 .cabinet-bezel:fullscreen iframe,
 .cabinet-bezel:-webkit-full-screen iframe,
 .cabinet-bezel:-moz-full-screen iframe,
