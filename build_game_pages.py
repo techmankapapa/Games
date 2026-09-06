@@ -120,15 +120,15 @@ TEMPLATE = """<!doctype html>
       }}
     }}
 
-    // Sizes the iframe to the game's real aspect ratio, as large as
-    // will fit fully on screen with nothing cropped, and centers it —
-    // "contain" scaling rather than "cover". Filling the screen
-    // completely by cropping the edges (cover) sounds nicer but is
-    // risky here: this is a cross-origin game, so there's no way to
-    // know what's near an edge before cropping it — it turned out to
-    // be the Restart button. Contain guarantees every control the
-    // game has stays visible; the cost is black bars on whichever
-    // axis doesn't match your monitor's shape.
+    // Sizes the iframe to the game's real aspect ratio and covers the
+    // entire screen — no black bars — by scaling to whichever
+    // dimension is the tighter fit and letting the other overflow off
+    // the edges (cropped by the bezel's overflow:hidden). Known
+    // trade-off: whatever sits near the cropped edge (e.g. a Restart
+    // button placed low/to the side in a given game) can end up
+    // hidden — there's no way to check what's there first since this
+    // is a cross-origin game. Fixing that for real means editing the
+    // game's own layout, not this wrapper.
     function fitFullscreenFrame() {{
       const frame = bezel.querySelector("iframe");
       if (!frame) return;
@@ -139,11 +139,11 @@ TEMPLATE = """<!doctype html>
       const vh = window.innerHeight;
       let w, h;
       if (vw / vh > ratio) {{
-        h = vh;
-        w = h * ratio;
-      }} else {{
         w = vw;
         h = w / ratio;
+      }} else {{
+        h = vh;
+        w = h * ratio;
       }}
       frame.style.width = Math.round(w) + "px";
       frame.style.height = Math.round(h) + "px";

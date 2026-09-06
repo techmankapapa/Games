@@ -765,13 +765,15 @@ footer.site-footer{
   background:#000;
 }
 
-/* The game keeps its real aspect ratio (letterboxed in black on
-   whichever axis doesn't match the monitor's shape) instead of being
-   cropped to fill the screen — cropping risks cutting off a control
-   the game has near an edge (it did: the Restart button), and this
-   is a cross-origin game so there's no way to check what's there
-   before cropping it. JS computes the exact size + centered offset;
-   position/size are cleared back to normal windowed CSS on exit. */
+/* The game covers the entire fullscreen viewport — no black bars —
+   by scaling up until it fully covers the screen and letting
+   whichever edge doesn't fit (left/right or top/bottom) get cropped
+   by the bezel's overflow:hidden. Known trade-off: a control placed
+   near that cropped edge in a given game can end up hidden — there's
+   no way to check first since this is a cross-origin game; fixing
+   that for real means editing that game's own layout. JS computes
+   the exact size + centered offset; position/size are cleared back
+   to normal windowed CSS on exit. */
 .cabinet-bezel:fullscreen iframe,
 .cabinet-bezel:-webkit-full-screen iframe,
 .cabinet-bezel:-moz-full-screen iframe,
