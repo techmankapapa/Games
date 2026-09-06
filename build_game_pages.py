@@ -45,6 +45,7 @@ TEMPLATE = """<!doctype html>
   <div class="game-body">
     <div class="screen-wrap">
       <div class="cabinet-bezel" id="bezel" style="--cab-aspect: {aspect}">
+        <button type="button" class="restart-btn" id="restartBtn" title="Restart game">&#x21bb;</button>
         <button type="button" class="fullscreen-btn" id="fullscreenBtn" title="Toggle fullscreen">&#x26F6;</button>
         <div class="cabinet-loading" id="cabinetLoading">
           <div class="loading-spinner"></div>
@@ -76,6 +77,25 @@ TEMPLATE = """<!doctype html>
     function hideLoading() {{ loadingEl.classList.add("is-hidden"); }}
     if (gameFrame) gameFrame.addEventListener("load", hideLoading);
     setTimeout(hideLoading, 9000);
+
+    // Restart button: forces a fresh reload of the game, whether it's
+    // mid-run or on its own death screen — works because it's OUR OWN
+    // button sitting on top of the iframe, not something inside the
+    // cross-origin game we'd need to click/detect. Always visible in
+    // both windowed and fullscreen, unlike the game's own in-frame
+    // restart control which can end up cropped in fullscreen "cover"
+    // mode depending on where that game puts it.
+    const restartBtn = document.getElementById("restartBtn");
+    if (restartBtn && gameFrame) {{
+      const originalSrc = gameFrame.src;
+      restartBtn.addEventListener("click", () => {{
+        loadingEl.classList.remove("is-hidden");
+        gameFrame.src = "about:blank";
+        requestAnimationFrame(() => {{
+          gameFrame.src = originalSrc;
+        }});
+      }});
+    }}
 
     // Fullscreen toggle for the cabinet. This works regardless of the
     // iframe's origin — it just expands the container element, no access
