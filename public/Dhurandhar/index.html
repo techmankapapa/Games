@@ -33,71 +33,16 @@
         <iframe src="https://techmankapapa.github.io/Dhurandhar/" title="Dhurandhar" allow="autoplay; fullscreen" allowfullscreen></iframe>
       </div>
     </div>
-
-
-  <footer class="site-footer">Guest scores are stored locally in this browser only.</footer>
+  </div>
 
   <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
   <script src="/assets/firebase-config.js"></script>
   <script src="/assets/app.js"></script>
   <script>
     const SLUG = "Dhurandhar";
     Arcade.mountGuestBadge(document.getElementById("guestBadge"));
     Arcade.mountNav(document.getElementById("siteNav"), SLUG);
-
-    function renderScores() {
-      const list = Arcade.getScores(SLUG);
-      const el = document.getElementById("scoreList");
-      if (!list.length) {
-        el.innerHTML = '<li class="empty-state">No runs saved yet — play, then log your score.</li>';
-        return;
-      }
-      el.innerHTML = list
-        .map(s => `<li><span>${s.value}</span><span class="ts">${Arcade.formatTime(s.ts)}</span></li>`)
-        .join("");
-    }
-
-    function showToast(msg) {
-      const t = document.getElementById("toast");
-      t.textContent = msg;
-      t.classList.add("show");
-      setTimeout(() => t.classList.remove("show"), 1600);
-    }
-
-    // Re-draw the list once cloud scores for this account come back
-    // and get merged in (see Arcade.syncFromCloud in app.js) — this
-    // is what makes a score follow the *account* across devices,
-    // not just sit in this browser's localStorage.
-    window.addEventListener("arcade:scores-synced", renderScores);
-
-    document.getElementById("scoreForm").addEventListener("submit", (e) => {
-      e.preventDefault();
-      const input = document.getElementById("scoreInput");
-      const saved = Arcade.saveScore(SLUG, input.value);
-      if (saved) {
-        showToast("Score saved");
-        input.value = "";
-        renderScores();
-      }
-    });
-
-    // If this game is ever updated to broadcast its score via
-    // window.parent.postMessage({ type: 'arcade-score', value }, '*'),
-    // it will be picked up and saved automatically — no page changes needed.
-    // NOTE: this only works if the game's OWN source code (hosted at
-    // techmankapapa.github.io) adds that postMessage call. A parent page
-    // can never read into a cross-origin iframe on its own — that's the
-    // browser's same-origin sandbox, and no client-side code can bypass it.
-    window.addEventListener("message", (event) => {
-      const data = event.data;
-      if (data && data.type === "arcade-score" && Number.isFinite(Number(data.value))) {
-        Arcade.saveScore(SLUG, data.value);
-        showToast("Score auto-saved");
-        renderScores();
-      }
-    });
 
     // Hide the loading overlay once the iframe's document has loaded.
     // Note: cross-origin means we can't know when the game's own
@@ -180,8 +125,6 @@
     ["fullscreenchange", "webkitfullscreenchange", "mozfullscreenchange", "MSFullscreenChange"].forEach((evt) =>
       document.addEventListener(evt, onFullscreenChange)
     );
-
-    renderScores();
   </script>
 </body>
 </html>

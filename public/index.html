@@ -30,11 +30,10 @@
   </div>
   <p class="stage-hint">Drag to spin &middot; move your mouse over the stage &middot; click the lit cabinet to play</p>
 
-  <footer class="site-footer">Guest scores are stored locally in this browser only — clearing site data resets them.</footer>
+  <footer class="site-footer">Meme Arcade</footer>
 
   <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
   <script src="/assets/firebase-config.js"></script>
   <script src="/assets/app.js"></script>
   <script>
@@ -52,7 +51,6 @@
     let activeIndex = 0;
 
     const cabs = GAMES.map((g, i) => {
-      const best = Arcade.getBest(g.slug);
       const el = document.createElement("div");
       el.className = "cab-3d";
       el.style.transform = `rotateY(${i * ANGLE_STEP}deg) translateZ(${RADIUS}px)`;
@@ -63,7 +61,6 @@
           <h2 class="cabinet-title">${g.title}</h2>
           <p class="cabinet-tagline">${g.tagline}</p>
           <div class="cabinet-footer">
-            <span class="best-score ${best === null ? "none" : ""}">${best === null ? "No run saved" : "Best: " + best}</span>
             <span class="play-arrow">PLAY</span>
           </div>
         </div>
@@ -167,19 +164,6 @@
     });
 
     goTo(0);
-
-    // Refresh each cabinet's "Best: N" badge once cloud scores for
-    // this account come back and get merged in.
-    window.addEventListener("arcade:scores-synced", () => {
-      cabs.forEach((el, i) => {
-        const best = Arcade.getBest(GAMES[i].slug);
-        const badge = el.querySelector(".best-score");
-        if (badge) {
-          badge.textContent = best === null ? "No run saved" : "Best: " + best;
-          badge.classList.toggle("none", best === null);
-        }
-      });
-    });
   </script>
 </body>
 </html>
