@@ -763,9 +763,6 @@ footer.site-footer{
   box-shadow:none;
   aspect-ratio:auto;
   background:#000;
-  display:flex;
-  align-items:center;
-  justify-content:center;
 }
 
 /* The game itself keeps its real aspect ratio even though the bezel
@@ -775,12 +772,16 @@ footer.site-footer{
    them: the embedded game's own layout is built for a narrow/tall
    window, and blowing that up to a wide monitor's shape doesn't make
    it "fill in" more content, it just gives the same narrow layout a
-   much bigger, mostly-empty canvas. JS sets the exact pixel box on
-   entering fullscreen; width/height default back to 100% on exit. */
+   much bigger, mostly-empty canvas. JS sets the exact pixel box AND
+   its centered left/top offset on entering fullscreen (flexbox
+   centering on a top-layer fullscreen element isn't reliable across
+   browsers — Chrome in particular can pin it to the top-left corner
+   instead of centering it); position/width/height are all cleared
+   back to the normal windowed CSS on exit. */
 .cabinet-bezel:fullscreen iframe,
 .cabinet-bezel:-webkit-full-screen iframe,
 .cabinet-bezel:-moz-full-screen iframe,
 .cabinet-bezel:-ms-fullscreen iframe,
 .cabinet-bezel.is-fullscreen iframe{
-  flex:none;
+  position:absolute;
 }

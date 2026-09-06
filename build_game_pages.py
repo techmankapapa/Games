@@ -95,11 +95,13 @@ TEMPLATE = """<!doctype html>
         window.addEventListener("resize", fitFullscreenFrame);
       }} else {{
         window.removeEventListener("resize", fitFullscreenFrame);
-        // Hand sizing back to the normal windowed CSS (width/height:100%).
+        // Hand sizing/positioning back to the normal windowed CSS.
         const frame = bezel.querySelector("iframe");
         if (frame) {{
           frame.style.width = "";
           frame.style.height = "";
+          frame.style.left = "";
+          frame.style.top = "";
         }}
         // Chrome (and some other engines) can leave a non-<video>
         // fullscreen element's contents blank/black after exiting
@@ -115,9 +117,12 @@ TEMPLATE = """<!doctype html>
     }}
 
     // Sizes the iframe to the game's real aspect ratio, as large as
-    // will fit on screen, and centers it — instead of stretching a
-    // narrow/tall game layout across a wide monitor, which is what
-    // left obstacles bunched on one side with empty space around them.
+    // will fit on screen, and centers it with explicit left/top
+    // offsets — instead of stretching a narrow/tall game layout across
+    // a wide monitor (which bunched obstacles on one side) and instead
+    // of relying on flexbox to center a top-layer fullscreen element
+    // (unreliable across browsers — Chrome in particular can pin it to
+    // the top-left corner instead of centering it).
     function fitFullscreenFrame() {{
       const frame = bezel.querySelector("iframe");
       if (!frame) return;
@@ -136,6 +141,8 @@ TEMPLATE = """<!doctype html>
       }}
       frame.style.width = Math.round(w) + "px";
       frame.style.height = Math.round(h) + "px";
+      frame.style.left = Math.round((vw - w) / 2) + "px";
+      frame.style.top = Math.round((vh - h) / 2) + "px";
     }}
 
     ["fullscreenchange", "webkitfullscreenchange", "mozfullscreenchange", "MSFullscreenChange"].forEach((evt) =>
