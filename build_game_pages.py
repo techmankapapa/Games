@@ -3,16 +3,20 @@ import os
 GAMES = [
     {"slug": "Modi", "title": "Modi Runner", "source": "https://techmankapapa.github.io/Modi/", "aspect": "4 / 3"},
     {"slug": "Vote-Run", "title": "Vote Runner", "source": "https://techmankapapa.github.io/Vote-Run/", "aspect": "4 / 3"},
-    {"slug": "Flying-Kejriwal", "title": "Flying Kejriwal", "source": "https://techmankapapa.github.io/Flying-Kejriwal/", "aspect": "3 / 4"},
-    {"slug": "Dhurandhar", "title": "Dhurandhar", "source": "https://techmankapapa.github.io/Dhurandhar/", "aspect": "3 / 4"},
-    {"slug": "Flying-Modi", "title": "Flying Modi", "source": "https://techmankapapa.github.io/Flying-Modi/", "aspect": "3 / 4"},
+    {"slug": "Flying-Kejriwal", "title": "Flying Kejriwal", "source": "https://techmankapapa.github.io/Flying-Kejriwal/", "aspect": "4 / 3"},
+    {"slug": "Dhurandhar", "title": "Dhurandhar", "source": "https://techmankapapa.github.io/Dhurandhar/", "aspect": "4 / 3"},
+    {"slug": "Flying-Modi", "title": "Flying Modi", "source": "https://techmankapapa.github.io/Flying-Modi/", "aspect": "4 / 3"},
     {"slug": "Helen-Keller-Simulator", "title": "Helen Keller Simulator", "source": "https://techmankapapa.github.io/Helen-Keller-Simulator/", "aspect": "4 / 3"},
 ]
-# "aspect" controls how tall the cabinet box is. The flappy-style games
-# (Flying-Kejriwal, Flying-Modi, Dhurandhar) are built for a taller,
-# more portrait-ish window — leaving them at the old fixed 4:3 box is
-# what made the play area look squashed/"too short". Landscape-style
-# games (the runner, the vote sprint) keep the wider 4:3 box.
+# "aspect" controls how tall the cabinet box is, and — in fullscreen —
+# what shape box the game gets letterboxed into. All six games are
+# confirmed/assumed landscape 4:3 layouts. An earlier guess that the
+# "Flying/flappy" games were portrait (3:4) was wrong — a real
+# screenshot of Flying-Kejriwal mid-game showed a wide landscape HUD
+# getting cropped down to a narrow box, cutting its score text off.
+# If a specific game turns out to actually be a different native
+# shape, change ONLY that entry's aspect (e.g. "16 / 9" or "3 / 4"),
+# based on an actual screenshot — not a guess.
 
 TEMPLATE = """<!doctype html>
 <html lang="en">
